@@ -1,0 +1,77 @@
+From dd3ac2e7cc2fe16fdde5bb263cab0c3826e8a92f Mon Sep 17 00:00:00 2001
+From: Harin Lee <me@harin.net>
+Date: Tue, 31 Mar 2026 20:20:49 +0900
+Subject: [PATCH 2/3] ALSA: ctxfi: Use matching DAIO type for da_desc
+
+Skip the unused DAIO type per model (SPDIFIO on CTSB073X, SPDIFI_BAY
+on all others) and use the matching DAIO type directly as da_desc
+type. This removes the mismatch between the actual DAIO resource and
+the da_desc type like SPDIFI_BAY (formerly SPDIFI1). Update related
+functions accordingly, and drop the unreachable SPDIFI_BAY case from
+the hw20k2 daio_device_index().
+
+Signed-off-by: Harin Lee <me@harin.net>
+---
+ sound/pci/ctxfi/ctatc.c  | 17 ++++++++---------
+ sound/pci/ctxfi/ctdaio.c |  1 -
+ 2 files changed, 8 insertions(+), 10 deletions(-)
+
+diff --git a/sound/pci/ctxfi/ctatc.c b/sound/pci/ctxfi/ctatc.c
+index 9e0532fb33ff..9a1f6cebaa32 100644
+--- a/sound/pci/ctxfi/ctatc.c
++++ b/sound/pci/ctxfi/ctatc.c
+@@ -1121,7 +1121,8 @@ static int atc_spdif_out_unmute(struct ct_atc *atc, unsigned char state)
+ 
+ static int atc_spdif_in_unmute(struct ct_atc *atc, unsigned char state)
+ {
+-	return atc_daio_unmute(atc, state, SPDIFIO);
++	return atc_daio_unmute(atc, state, (atc->model == CTSB073X) ?
++		SPDIFI_BAY : SPDIFIO);
+ }
+ 
+ static int atc_spdif_out_get_status(struct ct_atc *atc, unsigned int *status)
+@@ -1429,12 +1430,9 @@ static int atc_get_resources(struct ct_atc *atc)
+ 	for (i = 0; i < NUM_DAIOTYP; i++) {
+ 		if (((i == MIC) && !cap.dedicated_mic) ||
+ 		    ((i == RCA) && !cap.dedicated_rca) ||
+-		    i == SPDIFI_BAY)
++		    (i == ((atc->model == CTSB073X) ? SPDIFIO : SPDIFI_BAY)))
+ 			continue;
+-		if (atc->model == CTSB073X && i == SPDIFIO)
+-			da_desc.type = SPDIFI_BAY;
+-		else
+-			da_desc.type = i;
++		da_desc.type = i;
+ 		da_desc.output = (i < LINEIM) || (i == RCA);
+ 		err = daio_mgr->get_daio(daio_mgr, &da_desc,
+ 					(struct daio **)&atc->daios[i]);
+@@ -1569,10 +1567,11 @@ static void atc_connect_resources(struct ct_atc *atc)
+ 		mixer->set_input_right(mixer, MIX_MIC_IN, &src->rsc);
+ 	}
+ 
+-	dai = container_of(atc->daios[SPDIFIO], struct dai, daio);
++	dai = container_of(atc->daios[(atc->model == CTSB073X) ?
++		SPDIFI_BAY : SPDIFIO], struct dai, daio);
+ 	atc_connect_dai(atc->rsc_mgrs[SRC], dai,
+-			(struct src **)&atc->srcs[0],
+-			(struct srcimp **)&atc->srcimps[0]);
++		(struct src **)&atc->srcs[0],
++		(struct srcimp **)&atc->srcimps[0]);
+ 
+ 	src = atc->srcs[0];
+ 	mixer->set_input_left(mixer, MIX_SPDIF_IN, &src->rsc);
+diff --git a/sound/pci/ctxfi/ctdaio.c b/sound/pci/ctxfi/ctdaio.c
+index 128cf2f69ac1..69aacd06716c 100644
+--- a/sound/pci/ctxfi/ctdaio.c
++++ b/sound/pci/ctxfi/ctdaio.c
+@@ -120,7 +120,6 @@ static int daio_device_index(enum DAIOTYP type, struct hw *hw)
+ 		switch (type) {
+ 		case SPDIFOO:	return 0;
+ 		case SPDIFIO:	return 0;
+-		case SPDIFI_BAY:	return 1;
+ 		case LINEO1:	return 4;
+ 		case LINEO2:	return 7;
+ 		case LINEO3:	return 5;
+-- 
+2.53.0
+

@@ -1,0 +1,25 @@
+From a058970319b31d79f18232525e45e78fc25c52b6 Mon Sep 17 00:00:00 2001
+From: Harin Lee <me@harin.net>
+Date: Thu, 1 Oct 2026 23:35:23 +0900
+Subject: [PATCH 0/1] ALSA: ctxfi: Fix memory leakage when clearing DAO input
+ mappers
+
+I fixed the memory leakage in dao_clear_input() and successfully
+tested this patch on an AMD64 system with an OK0010 card and KASAN
+enabled.
+
+However, actually I could not find any evidence for why the original
+commit mistakenly removed the kfree() calls.
+
+Please feel free to drop this patch when this change looks like it
+has not been verified yet.
+
+Harin Lee (1):
+  ALSA: ctxfi: Fix memory leakage when clearing DAO input mappers
+
+ sound/pci/ctxfi/ctdaio.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+-- 
+2.55.0
+

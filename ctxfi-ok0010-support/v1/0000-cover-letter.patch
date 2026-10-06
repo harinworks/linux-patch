@@ -1,0 +1,39 @@
+From 945e520e05a74c361a38777f3cf7f4c9a57e7058 Mon Sep 17 00:00:00 2001
+From: Harin Lee <me@harin.net>
+Date: Fri, 21 Nov 2025 14:08:00 +0900
+Subject: [PATCH 0/6] ALSA: ctxfi: Add support for Onkyo SE-300PCIE
+
+I added support for the Onkyo SE-300PCIE (OK0010), a Creative X-Fi
+CA20K2-based sound card with dual TI PCM1798 DACs, a single TI PCM1681
+DAC for 7.1ch output, and a CS5364 ADC. This model differs
+significantly from other CA20K2-based variants.
+
+Since official driver support for this hardware was discontinued a long
+time ago, this patch series enables the card to be used on modern
+platforms.
+
+This patch series was developed using QEMU vfio tracing, and PCIe BAR
+dumps. Tested with analog output (up to 192kHz) and line/microphone
+input (up to 96kHz) at various sample rates.
+
+Harin Lee (6):
+  ALSA: ctxfi: Add hw parameter to daio_mgr_dao_init()
+  ALSA: ctxfi: Add ADC helper functions for GPIO
+  ALSA: ctxfi: Use explicit output flag for DAIO resources
+  ALSA: ctxfi: Refactor resource alloc for sparse mappings
+  ALSA: ctxfi: Add support for dedicated RCA switching
+  ALSA: ctxfi: Add support for Onkyo SE-300PCIE (OK0010)
+
+ sound/pci/ctxfi/ctatc.c      | 97 ++++++++++++++++++++++++++----------
+ sound/pci/ctxfi/ctatc.h      |  8 +--
+ sound/pci/ctxfi/ctdaio.c     | 18 ++++---
+ sound/pci/ctxfi/ctdaio.h     |  3 ++
+ sound/pci/ctxfi/cthardware.h |  4 +-
+ sound/pci/ctxfi/cthw20k1.c   |  3 +-
+ sound/pci/ctxfi/cthw20k2.c   | 79 ++++++++++++++++++++++-------
+ sound/pci/ctxfi/ctmixer.c    | 74 +++++++++++++++++++++++++--
+ 8 files changed, 224 insertions(+), 62 deletions(-)
+
+-- 
+2.52.0
+

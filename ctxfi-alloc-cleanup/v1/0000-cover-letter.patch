@@ -1,0 +1,30 @@
+From 952ef1b5a4076a8be69cfdff5094bc1d181dbef6 Mon Sep 17 00:00:00 2001
+From: Harin Lee <me@harin.net>
+Date: Wed, 1 Apr 2026 00:21:19 +0900
+Subject: [PATCH 0/3] ALSA: ctxfi: Clean up DAIO resource allocation
+
+Clean up the resource allocation in atc_get_resources() and related
+functions, on top of the recent SPDIFI1 fixes.
+
+The earlier refactoring introduced a kernel crash on hw20k2, where
+daio_device_index() returned -EINVAL for the SPDIFI1 type and the
+value was used as an unsigned array offset. On my development system
+(64G memory), this did not manifest as a crash, making the bug
+difficult to catch during testing.
+
+Tested on the real hw20k2 hardware with mem=8G to verify the original
+crash and confirm these patches.
+
+Harin Lee (3):
+  ALSA: ctxfi: Rename SPDIFI1 to SPDIFI_BAY
+  ALSA: ctxfi: Use matching DAIO type for da_desc
+  ALSA: ctxfi: Precompute SRC allocation loop bound
+
+ sound/pci/ctxfi/ctatc.c  | 27 ++++++++++++---------------
+ sound/pci/ctxfi/ctdaio.c |  5 ++---
+ sound/pci/ctxfi/ctdaio.h |  2 +-
+ 3 files changed, 15 insertions(+), 19 deletions(-)
+
+-- 
+2.53.0
+

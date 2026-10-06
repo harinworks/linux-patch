@@ -1,0 +1,51 @@
+From a058970319b31d79f18232525e45e78fc25c52b6 Mon Sep 17 00:00:00 2001
+From: Harin Lee <me@harin.net>
+Date: Thu, 1 Oct 2026 23:15:02 +0900
+Subject: [PATCH 1/1] ALSA: ctxfi: Fix memory leakage when clearing DAO input
+ mappers
+
+Commit e576e7843c0d ("ALSA: ctxfi: Simplify dao_clear_{left,right}_input() functions")
+centralized the DAO input mapper clearing logic in
+dao_clear_input(), but omitted the kfree() calls.
+
+It removes the mapper entries from the list and sets their pointers
+to NULL without freeing the allocated array. This leaks memory each
+time dao_clear_input() is called.
+
+Store the base pointer of the allocation before clearing the mapper
+entries and free the array after removing entries from the list.
+
+Fixes: e576e7843c0d ("ALSA: ctxfi: Simplify dao_clear_{left,right}_input() functions")
+Cc: stable@vger.kernel.org
+Signed-off-by: Harin Lee <me@harin.net>
+---
+ sound/pci/ctxfi/ctdaio.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/sound/pci/ctxfi/ctdaio.c b/sound/pci/ctxfi/ctdaio.c
+index 9be70c6862ab..27e502fa493e 100644
+--- a/sound/pci/ctxfi/ctdaio.c
++++ b/sound/pci/ctxfi/ctdaio.c
+@@ -221,14 +221,18 @@ static int dao_set_right_input(struct dao *dao, struct rsc *input)
+ 
+ static int dao_clear_input(struct dao *dao, unsigned int start, unsigned int end)
+ {
++	struct imapper *entry;
+ 	unsigned int i;
+ 
+-	if (!dao->imappers[start])
++	entry = dao->imappers[start];
++	if (!entry)
+ 		return 0;
++
+ 	for (i = start; i < end; i++) {
+ 		dao->mgr->imap_delete(dao->mgr, dao->imappers[i]);
+ 		dao->imappers[i] = NULL;
+ 	}
++	kfree(entry);
+ 
+ 	return 0;
+ }
+-- 
+2.55.0
+
